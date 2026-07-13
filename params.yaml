@@ -13,9 +13,9 @@ train:
   # for CPU/free-tier smoke runs.
   model: yolov8s.pt
   imgsz: 1280
-  epochs: 100
+  epochs: 300
   batch: 4                # fits an 8GB GPU at 1280
-  patience: 20            # early stopping on val mAP plateau
+  patience: 50            # early stopping on val mAP plateau (long schedule)
   device: ""              # "" = auto (cpu if no gpu)
 
 registry:
@@ -28,3 +28,4 @@ registry:
 monitor:
   drift_threshold: 0.5    # share of drifted feature columns that trips a retrain
   reference_sample: 200   # images sampled from train set as the drift reference
+  current_window: 200     # most-recent predictions compared against the reference

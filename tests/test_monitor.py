@@ -48,3 +48,15 @@ def test_no_drift_on_same_distribution():
     ref = _frame(50, 20)
     r = compute_drift(ref, _frame(50, 20, seed=2), threshold=0.5)
     assert r.drifted is False
+    assert r.n_columns == 4  # only input-image features, not prediction outputs
+
+
+def test_prediction_output_shift_alone_is_not_data_drift():
+    """n_detections / mean_confidence changing must NOT count as data drift."""
+    ref = _frame(50, 20)
+    cur = _frame(50, 20, seed=3)
+    cur["n_detections"] = cur["n_detections"] + 50  # big output shift, same inputs
+    cur["mean_confidence"] = 0.01
+    r = compute_drift(ref, cur, threshold=0.5)
+    assert r.drifted is False
+    assert r.n_drifted == 0

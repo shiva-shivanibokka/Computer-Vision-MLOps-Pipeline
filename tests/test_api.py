@@ -49,3 +49,8 @@ def test_predict_returns_detections_and_logs(client):
     summary = client.get("/monitor/summary").json()
     assert summary["n"] == 1
     assert summary["model_versions"] == {"test:stub": 1}
+
+
+def test_predict_rejects_non_image(client):
+    r = client.post("/predict", files={"file": ("x.txt", b"not an image", "text/plain")})
+    assert r.status_code == 400

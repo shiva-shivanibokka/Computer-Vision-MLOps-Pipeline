@@ -43,18 +43,21 @@ def train(smoke: bool = False, resume: bool = False) -> dict:
 
     init_mlflow()
     with mlflow.start_run() as run:
-        mlflow.log_params({
-            "base_model": tp["model"], "epochs": epochs, "imgsz": imgsz,
-            "batch": batch, "patience": tp["patience"], "smoke": smoke, "resumed": resume,
-        })
+        mlflow.log_params({"base_model": tp["model"], "smoke": smoke, "resumed": resume})
 
         if resume:
             # Continue an interrupted run from its last checkpoint to the original
-            # epoch count. Ultralytics reads all other args from the checkpoint.
+            # epoch count. Ultralytics reads all other args from the checkpoint, so
+            # log the *effective* args (not the possibly-changed params.yaml values).
             last = ARTIFACTS / "runs" / "train" / "weights" / "last.pt"
             model = YOLO(str(last))
             results = model.train(resume=True)
+            a = model.trainer.args
+            mlflow.log_params({"epochs": a.epochs, "imgsz": a.imgsz, "batch": a.batch,
+                               "patience": a.patience})
         else:
+            mlflow.log_params({"epochs": epochs, "imgsz": imgsz, "batch": batch,
+                               "patience": tp["patience"]})
             data_yaml = prepare.main()
             model = YOLO(tp["model"])
             results = model.train(

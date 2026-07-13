@@ -31,7 +31,11 @@ def _db_path() -> Path:
 
 
 def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(_db_path())
+    # WAL + busy_timeout so concurrent prediction writes from the serving endpoint
+    # don't raise "database is locked".
+    conn = sqlite3.connect(_db_path(), timeout=5.0)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     conn.execute(_SCHEMA)
     return conn
 

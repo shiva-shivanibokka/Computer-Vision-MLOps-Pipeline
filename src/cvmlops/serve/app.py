@@ -10,13 +10,16 @@ import io
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, UploadFile
-from PIL import Image
-from pydantic import BaseModel
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from PIL import Image, UnidentifiedImageError
+from pydantic import BaseModel, ConfigDict
+from starlette.concurrency import run_in_threadpool
 
 from cvmlops.monitor import logging_store
 from cvmlops.monitor.features import features_from
 from cvmlops.serve.model import Detection, ModelService
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 class DetectionOut(BaseModel):
@@ -26,12 +29,15 @@ class DetectionOut(BaseModel):
 
 
 class PredictResponse(BaseModel):
+    # field starts with "model_" — opt out of pydantic's protected namespace.
+    model_config = ConfigDict(protected_namespaces=())
     request_id: str
     model_version: str
     detections: list[DetectionOut]
 
 
 class Health(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     status: str
     model_version: str
 
@@ -52,13 +58,22 @@ def health() -> Health:
 
 @app.post("/predict", response_model=PredictResponse)
 async def predict(file: UploadFile = File(...), conf: float = 0.25) -> PredictResponse:
-    img = Image.open(io.BytesIO(await file.read())).convert("RGB")
+    raw = await file.read()
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"image too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)}MB)")
+    try:
+        img = Image.open(io.BytesIO(raw)).convert("RGB")
+    except (UnidentifiedImageError, OSError, ValueError) as e:
+        raise HTTPException(400, "invalid or unreadable image file") from e
+
     svc = ModelService.instance()
-    detections: list[Detection] = svc.predict(img, conf=conf)
+    # Inference and the SQLite write are blocking — keep them off the event loop.
+    detections: list[Detection] = await run_in_threadpool(svc.predict, img, conf)
 
     request_id = uuid.uuid4().hex
     mean_conf = sum(d.confidence for d in detections) / len(detections) if detections else 0.0
-    logging_store.log_prediction(
+    await run_in_threadpool(
+        logging_store.log_prediction,
         request_id, svc.version, features_from(img, len(detections), mean_conf))
 
     return PredictResponse(

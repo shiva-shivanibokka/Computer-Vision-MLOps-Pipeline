@@ -22,7 +22,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # MLflow: unset -> local ./mlruns file store. Set to DagsHub URL to go remote.
+    # MLflow: unset -> local SQLite store (see resolved_tracking_uri). Set to a
+    # DagsHub URL to go remote.
     mlflow_tracking_uri: str = ""
     mlflow_tracking_username: str = ""
     mlflow_tracking_password: str = ""

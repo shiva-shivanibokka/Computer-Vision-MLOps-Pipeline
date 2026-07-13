@@ -14,9 +14,13 @@ import argparse
 from dataclasses import dataclass
 
 from mlflow import MlflowClient
+from mlflow.exceptions import MlflowException
 
 from cvmlops.config import load_params
 from cvmlops.mlflow_utils import init_mlflow
+
+# MLflow error codes that mean "the alias/model simply doesn't exist yet".
+_NOT_FOUND = ("RESOURCE_DOES_NOT_EXIST", "NOT_FOUND")
 
 
 @dataclass
@@ -61,14 +65,21 @@ def promote(version: str | None = None) -> PromotionDecision:
 
     try:
         current = client.get_model_version_by_alias(name, alias)
-    except Exception:
+    except MlflowException as e:
+        # Only a genuine "not found" means there's no incumbent. Any other error
+        # (network, auth) must NOT be swallowed into an unconditional promotion —
+        # that would bypass the gate the loop depends on.
+        not_found = getattr(e, "error_code", "") in _NOT_FOUND \
+            or "not found" in str(e).lower() or "does not exist" in str(e).lower()
+        if not not_found:
+            raise
         current = None
 
     if current is None:
         client.set_registered_model_alias(name, alias, version)
         return PromotionDecision(True, version, "no incumbent — promoted", candidate, None)
 
-    if current.version == version:
+    if str(current.version) == str(version):
         return PromotionDecision(False, version, "already production", candidate, candidate)
 
     incumbent = _metric_for_version(client, name, current.version, metric) or 0.0

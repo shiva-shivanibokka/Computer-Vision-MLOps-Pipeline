@@ -10,7 +10,12 @@ from __future__ import annotations
 import numpy as np
 from PIL import Image
 
-FEATURE_COLS = ["brightness", "contrast", "width", "height", "n_detections", "mean_confidence"]
+# Input-image features: the basis for *data* drift (independent of the model).
+INPUT_FEATURE_COLS = ["brightness", "contrast", "width", "height"]
+# Prediction-output features: logged for monitoring, but NOT used as the data-drift
+# signal (the training reference has no predictions, so they'd always "drift").
+OUTPUT_FEATURE_COLS = ["n_detections", "mean_confidence"]
+FEATURE_COLS = INPUT_FEATURE_COLS + OUTPUT_FEATURE_COLS
 
 
 def image_stats(img: Image.Image) -> dict[str, float]:

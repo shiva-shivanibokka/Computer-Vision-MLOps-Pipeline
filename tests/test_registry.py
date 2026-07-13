@@ -43,3 +43,22 @@ def test_promote_same_version_is_noop(tmp_path):
     promote(v1)
     again = promote(v1)
     assert not again.promoted and again.reason == "already production"
+
+
+def test_promote_reraises_on_registry_error(tmp_path, monkeypatch):
+    """A non-'not found' registry error must NOT be swallowed into a promotion."""
+    import pytest
+    from mlflow import MlflowClient
+    from mlflow.exceptions import MlflowException
+
+    from cvmlops.registry import promote as promo
+
+    init_mlflow()
+    v1 = _register(0.30, tmp_path)
+
+    def boom(*a, **k):
+        raise MlflowException("registry unreachable")  # error_code INTERNAL_ERROR
+
+    monkeypatch.setattr(MlflowClient, "get_model_version_by_alias", boom)
+    with pytest.raises(MlflowException):
+        promo.promote(v1)

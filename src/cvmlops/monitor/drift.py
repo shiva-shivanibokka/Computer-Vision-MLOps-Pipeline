@@ -15,7 +15,7 @@ from evidently import DataDefinition, Dataset, Report
 from evidently.presets import DataDriftPreset
 
 from cvmlops.config import REPO_ROOT, load_params
-from cvmlops.monitor.features import FEATURE_COLS, image_stats
+from cvmlops.monitor.features import INPUT_FEATURE_COLS, image_stats
 
 
 @dataclass
@@ -27,7 +27,7 @@ class DriftResult:
 
 
 def _to_dataset(df: pd.DataFrame) -> Dataset:
-    cols = [c for c in FEATURE_COLS if c in df.columns]
+    cols = [c for c in INPUT_FEATURE_COLS if c in df.columns]
     definition = DataDefinition(numerical_columns=cols)
     return Dataset.from_pandas(df[cols], data_definition=definition)
 
@@ -71,8 +71,10 @@ def reference_from_training() -> pd.DataFrame:
     imgs = sorted((root / "images" / "train").glob("*"))[:n]
     if not imgs:
         raise FileNotFoundError(f"No training images under {root}; run data prepare first")
+    # Only input-image features — data drift is model-independent, so we don't
+    # fabricate prediction-output columns here (that used to always "drift").
     rows = []
     for p in imgs:
         with Image.open(p) as im:
-            rows.append({**image_stats(im), "n_detections": 0.0, "mean_confidence": 0.0})
+            rows.append(image_stats(im))
     return pd.DataFrame(rows)

@@ -12,7 +12,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from cvmlops.config import REPO_ROOT
+from cvmlops.config import REPO_ROOT, load_params
 from cvmlops.monitor import logging_store
 from cvmlops.monitor.drift import compute_drift, reference_from_training
 
@@ -21,7 +21,10 @@ DRIFT_EXIT = 10
 
 
 def main(min_current: int = 30) -> int:
-    current = logging_store.load_predictions()
+    # Compare only the most-recent window so a real recent shift isn't diluted
+    # by all historical predictions.
+    window = load_params()["monitor"]["current_window"]
+    current = logging_store.load_predictions(limit=window)
     if len(current) < min_current:
         print(f"drift=skip reason=only {len(current)} predictions (< {min_current})")
         return 2

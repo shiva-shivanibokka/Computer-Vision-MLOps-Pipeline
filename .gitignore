@@ -32,3 +32,4 @@ mlartifacts/
 .ruff_cache/
 .dvc/cache/
 .DS_Store
+/artifacts/*.log
