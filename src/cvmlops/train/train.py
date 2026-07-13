@@ -31,12 +31,11 @@ def _clean_metrics(results_dict: dict) -> dict[str, float]:
     return out
 
 
-def train(smoke: bool = False) -> dict:
+def train(smoke: bool = False, resume: bool = False) -> dict:
     from ultralytics import YOLO  # local import: keeps torch out of light imports
 
     params = load_params()
     tp, rp = params["train"], params["registry"]
-    data_yaml = prepare.main()
 
     epochs = 1 if smoke else tp["epochs"]
     imgsz = 64 if smoke else tp["imgsz"]
@@ -46,15 +45,23 @@ def train(smoke: bool = False) -> dict:
     with mlflow.start_run() as run:
         mlflow.log_params({
             "base_model": tp["model"], "epochs": epochs, "imgsz": imgsz,
-            "batch": batch, "patience": tp["patience"], "smoke": smoke,
+            "batch": batch, "patience": tp["patience"], "smoke": smoke, "resumed": resume,
         })
 
-        model = YOLO(tp["model"])
-        results = model.train(
-            data=str(data_yaml), epochs=epochs, imgsz=imgsz, batch=batch,
-            patience=tp["patience"], device=tp["device"] or None,
-            project=str(ARTIFACTS / "runs"), name="train", exist_ok=True, verbose=False,
-        )
+        if resume:
+            # Continue an interrupted run from its last checkpoint to the original
+            # epoch count. Ultralytics reads all other args from the checkpoint.
+            last = ARTIFACTS / "runs" / "train" / "weights" / "last.pt"
+            model = YOLO(str(last))
+            results = model.train(resume=True)
+        else:
+            data_yaml = prepare.main()
+            model = YOLO(tp["model"])
+            results = model.train(
+                data=str(data_yaml), epochs=epochs, imgsz=imgsz, batch=batch,
+                patience=tp["patience"], device=tp["device"] or None,
+                project=str(ARTIFACTS / "runs"), name="train", exist_ok=True, verbose=False,
+            )
 
         metrics = _clean_metrics(results.results_dict)
         mlflow.log_metrics(metrics)
@@ -75,4 +82,6 @@ def train(smoke: bool = False) -> dict:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true", help="1-epoch tiny run for CI")
-    train(smoke=ap.parse_args().smoke)
+    ap.add_argument("--resume", action="store_true", help="resume from last.pt checkpoint")
+    args = ap.parse_args()
+    train(smoke=args.smoke, resume=args.resume)

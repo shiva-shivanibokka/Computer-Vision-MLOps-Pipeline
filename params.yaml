@@ -8,11 +8,14 @@ dataset:
   seed: 42
 
 train:
-  model: yolov8n.pt       # nano — trains on CPU/free tiers
-  imgsz: 640
-  epochs: 50
-  batch: 16
-  patience: 10            # early stopping on val mAP plateau
+  # HRIPCB boards are ~3000px with tiny defects, so high imgsz matters far more
+  # than model size. 1280 + yolov8s is the quality config; drop to yolov8n/640
+  # for CPU/free-tier smoke runs.
+  model: yolov8s.pt
+  imgsz: 1280
+  epochs: 100
+  batch: 4                # fits an 8GB GPU at 1280
+  patience: 20            # early stopping on val mAP plateau
   device: ""              # "" = auto (cpu if no gpu)
 
 registry:
