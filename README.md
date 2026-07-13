@@ -81,12 +81,25 @@ pytest -m "not heavy"     # fast: data, monitor, api, registry
 pytest tests/test_smoke_train.py   # end-to-end: train -> register -> promote
 ```
 
-## Using real PCB data
+## Training on real PCB data (one GPU run)
 
-Drop a YOLO-format PCB defect dataset (e.g. [DeepPCB](https://github.com/tangsanli5201/DeepPCB)
-or a Roboflow export) into `data/pcb_raw/` as `images/*.jpg` + `labels/*.txt`.
-`python -m cvmlops.data.prepare` splits it into train/val and writes `data.yaml`.
-With no raw data present it generates a synthetic dataset so the pipeline always runs.
+The default dataset is **HRIPCB / PKU-Market-PCB** — its 6 defect classes already
+match `params.yaml`. Download it (Kaggle `akhatova/pcb-defects` or GitHub
+[PCB-DATASET](https://github.com/Ironbrotherstyle/PCB-DATASET)), extract, then:
+
+```bash
+python -m cvmlops.data.convert_hripcb --src /path/to/PCB_DATASET   # VOC XML -> YOLO
+python -m cvmlops.data.prepare                                     # split train/val
+python -m cvmlops.train.train                                      # trains on GPU if present
+python -m cvmlops.registry.promote                                 # gate -> production
+```
+
+`train.py` auto-uses the GPU (`device: ""` in `params.yaml` = auto). To host the
+run in DagsHub's MLflow UI, set the `.env` vars **before** training (local runs
+don't migrate). Any other YOLO-format dataset also works — just drop
+`images/*.jpg` + `labels/*.txt` into `data/pcb_raw/` and skip the convert step.
+With no raw data present, `prepare.py` generates a synthetic dataset so the
+pipeline always runs.
 
 ## Connecting the free accounts (do this last)
 
