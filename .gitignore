@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Env / secrets
+.env
+
+# MLflow local store
+mlflow.db
+mlruns/
+mlartifacts/
+
+# DVC-tracked data & model outputs (pointers are committed, contents are not)
+/data/pcb/
+/data/pcb_raw/
+/artifacts/best.pt
+/artifacts/runs/
+/artifacts/*.html
+/artifacts/predictions.db
+
+# YOLO weight downloads at repo root
+/*.pt
+
+# OS / tooling
+.pytest_cache/
+.ruff_cache/
+.dvc/cache/
+.DS_Store

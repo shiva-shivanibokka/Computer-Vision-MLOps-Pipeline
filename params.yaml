@@ -1,0 +1,27 @@
+# Single source of truth for the pipeline. DVC stages and training read this.
+dataset:
+  name: pcb-defects
+  # 6 PCB defect classes (DeepPCB / PKU-Market-PCB convention).
+  classes: [missing_hole, mouse_bite, open_circuit, short, spur, spurious_copper]
+  root: data/pcb          # YOLO-format dataset root (images/ + labels/ + splits)
+  val_fraction: 0.2
+  seed: 42
+
+train:
+  model: yolov8n.pt       # nano — trains on CPU/free tiers
+  imgsz: 640
+  epochs: 50
+  batch: 16
+  patience: 10            # early stopping on val mAP plateau
+  device: ""              # "" = auto (cpu if no gpu)
+
+registry:
+  model_name: pcb-defect-detector
+  alias: production        # MLflow registry alias the serving layer loads
+  # New model must beat current production on this metric by this margin to promote.
+  promotion_metric: "mAP50-95"
+  promotion_margin: 0.0
+
+monitor:
+  drift_threshold: 0.5    # share of drifted feature columns that trips a retrain
+  reference_sample: 200   # images sampled from train set as the drift reference

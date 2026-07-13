@@ -1,0 +1,35 @@
+# Local production-like stack: a real MLflow tracking server + the detector app.
+# Reuses the same image for both services (mlflow is already a dependency).
+#
+#   docker compose up --build
+#   docker compose run --rm app python -m cvmlops.train.train      # populate a model
+#   docker compose run --rm app python -m cvmlops.registry.promote
+#
+#   App:       http://localhost:7860/ui   (API docs at /docs)
+#   MLflow UI: http://localhost:5000
+
+services:
+  mlflow:
+    build: .
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts --serve-artifacts
+    volumes:
+      - mlflow-data:/mlflow
+    ports:
+      - "5000:5000"
+
+  app:
+    build: .
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./artifacts:/app/artifacts   # local weights fallback + drift reports
+
+volumes:
+  mlflow-data:

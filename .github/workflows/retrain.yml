@@ -1,0 +1,56 @@
+name: Drift check & auto-retrain
+
+# The closed MLOps loop: on a schedule, check production drift; if drift is
+# detected, retrain, run the promotion gate, and (if a better model wins) the
+# next CI run redeploys it.
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # weekly, Monday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      force_retrain:
+        description: "Retrain even if no drift"
+        type: boolean
+        default: false
+
+jobs:
+  drift-and-retrain:
+    runs-on: ubuntu-latest
+    env:
+      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+      MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: pip install .
+
+      # Prediction log persistence is the integration point: pull it from your
+      # deployment's persistent storage (HF Space volume / DVC) before this step.
+      - name: Check drift
+        id: drift
+        run: |
+          set +e
+          python -m cvmlops.monitor.check
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          # 10 = drift, 0 = no drift, 2 = not enough data
+          if [ "$code" = "10" ]; then echo "retrain=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Retrain + promote
+        if: steps.drift.outputs.retrain == 'true' || inputs.force_retrain
+        run: |
+          python -m cvmlops.train.train
+          python -m cvmlops.registry.promote
+
+      - name: Upload drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: artifacts/drift_report.html
+          if-no-files-found: ignore

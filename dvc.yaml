@@ -1,0 +1,21 @@
+# Reproducible data + model pipeline: `dvc repro` regenerates data then trains.
+# DVC remote (data + model storage) lives on DagsHub — see README.
+stages:
+  prepare:
+    cmd: python -m cvmlops.data.prepare
+    deps:
+      - src/cvmlops/data/prepare.py
+      - src/cvmlops/data/synthetic.py
+      - params.yaml
+    outs:
+      - data/pcb
+
+  train:
+    cmd: python -m cvmlops.train.train
+    deps:
+      - data/pcb
+      - src/cvmlops/train/train.py
+      - src/cvmlops/mlflow_utils.py
+      - params.yaml
+    outs:
+      - artifacts/best.pt
