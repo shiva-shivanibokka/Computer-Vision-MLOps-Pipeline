@@ -8,24 +8,25 @@ dataset:
   seed: 42
 
 train:
-  # With tiling on (below), defects stay full-size inside 640px tiles, so we train
-  # at 640 — fast and the real fix for tiny-defect detection. Without tiling, raise
-  # imgsz toward 1280+ instead.
+  # Full-image config that produced the production model (v3). Defects are tiny on
+  # ~3000px boards, so high imgsz matters most.
   model: yolov8s.pt
-  imgsz: 640
-  epochs: 100
-  batch: 16               # 640px tiles fit comfortably on an 8GB GPU
-  patience: 25            # early stopping on val mAP plateau
+  imgsz: 1280
+  epochs: 300
+  batch: 4                # fits an 8GB GPU at 1280
+  patience: 50            # early stopping on val mAP plateau
   device: ""              # "" = auto (cpu if no gpu)
 
 tiling:
-  # Slice ~3000px boards into 640px tiles so ~70px defects stay ~70px (not ~30px).
-  # The single biggest lever on mAP for this dataset. Serving re-slices to match.
-  enabled: true
+  # Optional SAHI-style tiling (code in data/tile.py + serve/tiled_inference.py).
+  # Disabled: a trial run underperformed (too many background tiles biased the
+  # model to predict nothing). Kept as a config-gated capability. To retry, set
+  # enabled: true and lower keep_background to ~0.03 before rebuilding tiles.
+  enabled: false
   root: data/pcb_tiled
   tile_size: 640
-  overlap: 0.2            # 20% tile overlap so edge-straddling defects survive
-  keep_background: 0.15   # keep 15% of defect-free tiles as negatives (precision)
+  overlap: 0.2
+  keep_background: 0.15
 
 registry:
   model_name: pcb-defect-detector
