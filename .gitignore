@@ -33,3 +33,4 @@ mlartifacts/
 .dvc/cache/
 .DS_Store
 /artifacts/*.log
+/data/pcb_tiled/

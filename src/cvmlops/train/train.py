@@ -13,7 +13,7 @@ from pathlib import Path
 import mlflow
 
 from cvmlops.config import REPO_ROOT, load_params
-from cvmlops.data import prepare
+from cvmlops.data import prepare, tile
 from cvmlops.mlflow_utils import init_mlflow, register_weights
 
 ARTIFACTS = REPO_ROOT / "artifacts"
@@ -36,6 +36,7 @@ def train(smoke: bool = False, resume: bool = False) -> dict:
 
     params = load_params()
     tp, rp = params["train"], params["registry"]
+    tiling = params.get("tiling", {})
 
     epochs = 1 if smoke else tp["epochs"]
     imgsz = 64 if smoke else tp["imgsz"]
@@ -57,8 +58,10 @@ def train(smoke: bool = False, resume: bool = False) -> dict:
                                "patience": a.patience})
         else:
             mlflow.log_params({"epochs": epochs, "imgsz": imgsz, "batch": batch,
-                               "patience": tp["patience"]})
-            data_yaml = prepare.main()
+                               "patience": tp["patience"], "tiled": tiling.get("enabled", False)})
+            prepared = prepare.main()
+            # Tiling keeps tiny defects full-size; train on tiles when enabled.
+            data_yaml = tile.main() if (tiling.get("enabled") and not smoke) else prepared
             model = YOLO(tp["model"])
             results = model.train(
                 data=str(data_yaml), epochs=epochs, imgsz=imgsz, batch=batch,

@@ -8,15 +8,24 @@ dataset:
   seed: 42
 
 train:
-  # HRIPCB boards are ~3000px with tiny defects, so high imgsz matters far more
-  # than model size. 1280 + yolov8s is the quality config; drop to yolov8n/640
-  # for CPU/free-tier smoke runs.
+  # With tiling on (below), defects stay full-size inside 640px tiles, so we train
+  # at 640 — fast and the real fix for tiny-defect detection. Without tiling, raise
+  # imgsz toward 1280+ instead.
   model: yolov8s.pt
-  imgsz: 1280
-  epochs: 300
-  batch: 4                # fits an 8GB GPU at 1280
-  patience: 50            # early stopping on val mAP plateau (long schedule)
+  imgsz: 640
+  epochs: 100
+  batch: 16               # 640px tiles fit comfortably on an 8GB GPU
+  patience: 25            # early stopping on val mAP plateau
   device: ""              # "" = auto (cpu if no gpu)
+
+tiling:
+  # Slice ~3000px boards into 640px tiles so ~70px defects stay ~70px (not ~30px).
+  # The single biggest lever on mAP for this dataset. Serving re-slices to match.
+  enabled: true
+  root: data/pcb_tiled
+  tile_size: 640
+  overlap: 0.2            # 20% tile overlap so edge-straddling defects survive
+  keep_background: 0.15   # keep 15% of defect-free tiles as negatives (precision)
 
 registry:
   model_name: pcb-defect-detector

@@ -86,6 +86,14 @@ class ModelService:
         return (str(pt) if pt else None), mv.version
 
     def predict(self, img: Image.Image, conf: float = 0.25) -> list[Detection]:
+        tiling = load_params().get("tiling", {})
+        if tiling.get("enabled"):
+            # Model was trained on tiles — slice the board the same way at serve time.
+            from cvmlops.serve.tiled_inference import sliced_predict
+            raws = sliced_predict(self._model, img, tiling["tile_size"], tiling["overlap"],
+                                  conf=conf)
+            return [Detection(label=r.label, confidence=r.confidence, box=r.box) for r in raws]
+
         results = self._model.predict(img, conf=conf, verbose=False)
         names = self._model.names
         out: list[Detection] = []
