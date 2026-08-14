@@ -1,14 +1,3 @@
----
-title: PCB Defect Detector
-emoji: 🔍
-colorFrom: green
-colorTo: yellow
-sdk: docker
-app_port: 7860
-pinned: false
-short_description: YOLO defect detection on circuit boards, inside a closed MLOps loop
----
-
 # Computer Vision MLOps Pipeline — PCB Defect Detection
 
 An end-to-end, production-style MLOps system for detecting manufacturing defects
@@ -18,13 +7,15 @@ tracked experiments, a gated model registry, containerized serving, drift
 monitoring, and drift-triggered automated retraining. Everything runs on **free
 tiers, no credit card**.
 
-### ▶ [Open the live demo](https://shiva-1993-pcb-defect-detector.hf.space)
+### ▶ [Open the live demo](https://pcb-defect-detector-548930096299.us-central1.run.app)
 
-Running on a free Hugging Face Space — **control panel** at
-[`/ui`](https://shiva-1993-pcb-defect-detector.hf.space/ui/), **API docs** at
-[`/docs`](https://shiva-1993-pcb-defect-detector.hf.space/docs). Real weights,
-real inference, nothing pre-recorded. Start on the **Manual** tab. The Space
-sleeps when idle, so the first request wakes the container.
+Running on Cloud Run — **control panel** at
+[`/ui`](https://pcb-defect-detector-548930096299.us-central1.run.app/ui/),
+**API docs** at
+[`/docs`](https://pcb-defect-detector-548930096299.us-central1.run.app/docs).
+Real weights, real inference, nothing pre-recorded. Start on the **Manual** tab.
+It scales to zero, so the first request after an idle spell waits about 10
+seconds for the container to wake and load the model.
 
 ## What the demo is honest about
 
@@ -87,7 +78,7 @@ which is what drift monitoring actually needs.
 | Control panel | Hand-built static HTML/CSS/JS | open source |
 | Containers | Docker + docker-compose | open source |
 | CI/CD | GitHub Actions | free (public repo) |
-| Deploy | **Hugging Face Spaces** (Docker SDK) | free |
+| Deploy | **Google Cloud Run** (scale to zero) | free tier |
 | Drift monitoring | Evidently + SQLite | open source |
 | Quality | pytest, ruff, pre-commit | open source |
 
@@ -147,8 +138,12 @@ To go to the hosted, production configuration, set these and nothing else change
    `MLFLOW_TRACKING_URI` / `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`.
    Add the same as GitHub repo secrets for the retrain workflow. Configure the
    DVC remote: `dvc remote add origin s3://... ` (DagsHub gives the exact command).
-2. **Hugging Face** — create a Docker Space, add `HF_TOKEN` and `HF_SPACE`
-   (`user/space-name`) as GitHub secrets; `ci.yml` pushes to it on merge to `main`.
+2. **Deploy** — one command, no secrets required:
+   ```bash
+   gcloud run deploy pcb-defect-detector --source . --region us-central1      --port 7860 --memory 2Gi --cpu 2 --max-instances 1 --cpu-boost
+   ```
+   `--max-instances 1` is deliberate: the prediction log is SQLite inside the
+   container, so a second instance would be a second, disagreeing log.
 
 ## Layout
 
