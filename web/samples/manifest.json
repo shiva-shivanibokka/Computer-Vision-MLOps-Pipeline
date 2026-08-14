@@ -1,0 +1,344 @@
+[
+ {
+  "id": "09_missing_hole_04",
+  "name": "Missing hole",
+  "file": "samples/09_missing_hole_04.jpg",
+  "width": 2952,
+  "height": 2392,
+  "truth": [
+   {
+    "label": "missing_hole",
+    "box": [
+     1191.4,
+     394.4,
+     1270.2,
+     457.6
+    ]
+   },
+   {
+    "label": "missing_hole",
+    "box": [
+     603.2,
+     1172.2,
+     664.9,
+     1238.7
+    ]
+   },
+   {
+    "label": "missing_hole",
+    "box": [
+     898.9,
+     1484.6,
+     961.7,
+     1560.0
+    ]
+   },
+   {
+    "label": "missing_hole",
+    "box": [
+     2285.0,
+     1278.5,
+     2353.1,
+     1355.0
+    ]
+   },
+   {
+    "label": "missing_hole",
+    "box": [
+     2288.2,
+     746.7,
+     2356.3,
+     819.9
+    ]
+   },
+   {
+    "label": "missing_hole",
+    "box": [
+     1412.7,
+     1173.3,
+     1484.0,
+     1246.4
+    ]
+   }
+  ]
+ },
+ {
+  "id": "06_mouse_bite_02",
+  "name": "Mouse bite",
+  "file": "samples/06_mouse_bite_02.jpg",
+  "width": 3094,
+  "height": 2603,
+  "truth": [
+   {
+    "label": "mouse_bite",
+    "box": [
+     529.7,
+     1088.0,
+     603.0,
+     1135.2
+    ]
+   },
+   {
+    "label": "mouse_bite",
+    "box": [
+     1374.4,
+     1874.7,
+     1413.2,
+     1937.6
+    ]
+   },
+   {
+    "label": "mouse_bite",
+    "box": [
+     2248.2,
+     1101.4,
+     2297.8,
+     1186.9
+    ]
+   },
+   {
+    "label": "mouse_bite",
+    "box": [
+     1667.8,
+     1237.4,
+     1742.3,
+     1275.6
+    ]
+   },
+   {
+    "label": "mouse_bite",
+    "box": [
+     1232.0,
+     1030.6,
+     1295.6,
+     1067.7
+    ]
+   },
+   {
+    "label": "mouse_bite",
+    "box": [
+     1937.5,
+     571.0,
+     2000.1,
+     612.5
+    ]
+   }
+  ]
+ },
+ {
+  "id": "10_open_circuit_06",
+  "name": "Open circuit",
+  "file": "samples/10_open_circuit_06.jpg",
+  "width": 2375,
+  "height": 2167,
+  "truth": [
+   {
+    "label": "open_circuit",
+    "box": [
+     1427.1,
+     1008.3,
+     1482.3,
+     1098.5
+    ]
+   },
+   {
+    "label": "open_circuit",
+    "box": [
+     1075.1,
+     1253.3,
+     1180.1,
+     1315.7
+    ]
+   },
+   {
+    "label": "open_circuit",
+    "box": [
+     909.7,
+     1648.9,
+     986.0,
+     1739.2
+    ]
+   },
+   {
+    "label": "open_circuit",
+    "box": [
+     1770.6,
+     1687.6,
+     1883.0,
+     1767.1
+    ]
+   },
+   {
+    "label": "open_circuit",
+    "box": [
+     2080.2,
+     1811.2,
+     2172.5,
+     1910.1
+    ]
+   }
+  ]
+ },
+ {
+  "id": "10_short_04",
+  "name": "Short",
+  "file": "samples/10_short_04.jpg",
+  "width": 2498,
+  "height": 2308,
+  "truth": [
+   {
+    "label": "short",
+    "box": [
+     1091.8,
+     626.2,
+     1244.5,
+     737.3
+    ]
+   },
+   {
+    "label": "short",
+    "box": [
+     2098.8,
+     603.3,
+     2251.5,
+     733.8
+    ]
+   },
+   {
+    "label": "short",
+    "box": [
+     1937.1,
+     799.1,
+     2084.3,
+     946.8
+    ]
+   },
+   {
+    "label": "short",
+    "box": [
+     1297.0,
+     1781.4,
+     1428.5,
+     1956.5
+    ]
+   },
+   {
+    "label": "short",
+    "box": [
+     1953.8,
+     1882.1,
+     2086.5,
+     2049.3
+    ]
+   }
+  ]
+ },
+ {
+  "id": "10_spur_03",
+  "name": "Spur",
+  "file": "samples/10_spur_03.jpg",
+  "width": 2274,
+  "height": 2054,
+  "truth": [
+   {
+    "label": "spur",
+    "box": [
+     1828.3,
+     1705.6,
+     1939.0,
+     1753.4
+    ]
+   },
+   {
+    "label": "spur",
+    "box": [
+     1213.1,
+     1710.6,
+     1303.5,
+     1763.6
+    ]
+   },
+   {
+    "label": "spur",
+    "box": [
+     1537.0,
+     949.6,
+     1664.9,
+     1004.6
+    ]
+   },
+   {
+    "label": "spur",
+    "box": [
+     1510.6,
+     1319.4,
+     1566.4,
+     1451.9
+    ]
+   },
+   {
+    "label": "spur",
+    "box": [
+     1808.0,
+     1221.6,
+     1894.3,
+     1303.1
+    ]
+   }
+  ]
+ },
+ {
+  "id": "11_spurious_copper_01",
+  "name": "Spurious copper",
+  "file": "samples/11_spurious_copper_01.jpg",
+  "width": 2538,
+  "height": 2509,
+  "truth": [
+   {
+    "label": "spurious_copper",
+    "box": [
+     1005.4,
+     390.6,
+     1065.5,
+     484.4
+    ]
+   },
+   {
+    "label": "spurious_copper",
+    "box": [
+     1242.3,
+     716.5,
+     1293.5,
+     824.8
+    ]
+   },
+   {
+    "label": "spurious_copper",
+    "box": [
+     1359.1,
+     1214.3,
+     1441.4,
+     1262.3
+    ]
+   },
+   {
+    "label": "spurious_copper",
+    "box": [
+     1301.3,
+     1587.1,
+     1341.3,
+     1667.5
+    ]
+   },
+   {
+    "label": "spurious_copper",
+    "box": [
+     919.8,
+     1521.2,
+     982.1,
+     1574.8
+    ]
+   }
+  ]
+ }
+]

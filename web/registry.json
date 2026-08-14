@@ -1,0 +1,61 @@
+{
+ "model_name": "pcb-defect-detector",
+ "gate_metric": "mAP50-95",
+ "shipped_weights_version": 3,
+ "gate_rule": "A new version takes the production alias only if it beats the incumbent on mAP50-95. Margin is 0.0, so ties do not promote.",
+ "source": "Exported from the local MLflow SQLite registry (mlflow.db) at build time, so the panel can tell this story without MLflow in the serving container.",
+ "versions": [
+  {
+   "version": 1,
+   "base": "yolov8n",
+   "imgsz": 640,
+   "epochs": 50,
+   "mAP50": 0.1315,
+   "mAP50-95": 0.039,
+   "precision": 0.3184,
+   "recall": 0.1355,
+   "train_minutes": 9,
+   "status": "promoted",
+   "note": "First real run. Nothing to beat, so it took the alias by default and became the incumbent."
+  },
+  {
+   "version": 2,
+   "base": "yolov8s",
+   "imgsz": 1280,
+   "epochs": 100,
+   "mAP50": 0.3114,
+   "mAP50-95": 0.0974,
+   "precision": 0.4183,
+   "recall": 0.3362,
+   "train_minutes": 58,
+   "status": "promoted",
+   "note": "Bigger model at double the resolution. 0.039 to 0.097 on the gate metric — the single biggest jump in the project, and almost all of it came from resolution, not capacity."
+  },
+  {
+   "version": 3,
+   "base": "yolov8s",
+   "imgsz": 1280,
+   "epochs": 300,
+   "mAP50": 0.3357,
+   "mAP50-95": 0.1166,
+   "precision": 0.4992,
+   "recall": 0.3553,
+   "train_minutes": 212,
+   "status": "production",
+   "note": "Same recipe as v2 with three times the epochs, early-stopped around epoch 174. It cleared the gate, but only by 0.019 for 3.5 hours of training — this is where the curve flattens."
+  },
+  {
+   "version": 4,
+   "base": "yolov8s (tiled)",
+   "imgsz": 640,
+   "epochs": null,
+   "mAP50": null,
+   "mAP50-95": null,
+   "precision": null,
+   "recall": null,
+   "train_minutes": null,
+   "status": "rejected",
+   "note": "SAHI-style tiling: cut each board into 640px tiles so defects fill more of the frame. It never reached the gate. On full boards, sliced inference found 1 defect out of 18. Cause was the tile set — 32% of tiles contained no defect at all, which taught the model that predicting nothing is usually right. The run was deleted from the registry, so it has no metrics row here. Code kept behind tiling.enabled: false."
+  }
+ ]
+}

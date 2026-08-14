@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCB Defect Detector</title>
+<meta name="description" content="A YOLO defect detector for printed circuit boards, wrapped in a closed MLOps loop: tracked runs, a gated registry, drift monitoring and automated retraining.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="mast">
+    <p class="eyebrow">Computer Vision MLOps &middot; HRIPCB</p>
+    <h1>Six ways a circuit board can be <em>wrong</em>.</h1>
+    <p class="lede">
+      This is a YOLO detector that looks at a photograph of a printed circuit board and marks
+      the manufacturing defects on it &mdash; missing holes, mouse bites, open circuits, shorts,
+      spurs, spurious copper.
+    </p>
+    <p class="lede">
+      The detector is not the interesting part. <strong>The loop around it is.</strong> Every
+      training run is tracked, every model version has to beat the one in production before it
+      is allowed to replace it, every prediction is logged, and drift in those logs triggers a
+      retrain. Three versions earned promotion. One was refused. You can see all of it here.
+    </p>
+    <p class="lede">
+      The model in front of you finds roughly <strong>a third of the defects</strong> on a board.
+      That is a real number from a real dataset, and the <b>Limits</b> tab explains exactly why
+      it is not higher &mdash; because a portfolio that only shows the parts that worked is not
+      showing you engineering.
+    </p>
+    <div class="boot" id="boot"><i></i><span id="bootMsg">Waking the container and loading weights&hellip;</span></div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-view="manual"   aria-selected="true">Manual</button>
+    <button role="tab" data-view="inspect"  aria-selected="false">Inspect</button>
+    <button role="tab" data-view="registry" aria-selected="false">Registry</button>
+    <button role="tab" data-view="drift"    aria-selected="false">Drift</button>
+    <button role="tab" data-view="limits"   aria-selected="false">Limits</button>
+    <button role="tab" data-view="api"      aria-selected="false">API</button>
+  </nav>
+
+  <!-- ================= MANUAL ================= -->
+  <section class="view" id="v-manual">
+    <div class="card">
+      <h2>How to read this panel</h2>
+      <p class="sub">start here &middot; every tab explained</p>
+      <p>
+        Five tabs follow this one. They are ordered the way the system actually runs: you score a
+        board, you see which model version scored it and why that version won, you watch what the
+        served traffic looks like over time, and then you read what the whole thing still cannot do.
+      </p>
+
+      <div class="entry">
+        <b>Inspect</b>
+        <div>
+          <p>The demo. Pick one of six boards &mdash; one per defect class &mdash; or upload your
+            own. The model runs and draws a solid gold box around everything it found.</p>
+          <p>For the six shipped boards there is also a <strong>dashed rose box for every defect
+            the model missed</strong>, because those boards come from the labelled validation set
+            and the answers are known. The counter reads <code>found 4 of 6</code>, not just
+            <code>4 detections</code>. An uploaded image has no labels, so misses cannot be shown
+            for it &mdash; only what the model claims to see.</p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <b>Registry</b>
+        <div>
+          <p>Four model versions and what happened to each. The promotion gate compares a new
+            version against the incumbent on <code>mAP50-95</code> and refuses anything that does
+            not beat it. v1, v2 and v3 cleared it. <strong>v4 did not, and was never served.</strong></p>
+          <p>The row marked <em>production</em> is the model that scored your board on the Inspect
+            tab &mdash; the panel checks that against the live server rather than trusting the table.</p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <b>Drift</b>
+        <div>
+          <p>Every prediction made through this panel is logged &mdash; image statistics plus what
+            the model returned, never the image itself. Evidently compares the recent window
+            against a reference sample from the training set, and if enough feature columns drift,
+            a scheduled GitHub Action retrains.</p>
+          <p>The counter starts at zero on every container restart. That is honest rather than
+            broken: the log lives in the container's own storage, so a free Space that goes to
+            sleep forgets it.</p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <b>Limits</b>
+        <div>
+          <p>Why mAP@50 is 0.336 and not 0.9. The short version is that this dataset is
+            resolution-limited, and the tab shows the evidence for that claim, plus the tiling
+            experiment that was supposed to fix it and instead failed badly.</p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <b>API</b>
+        <div>
+          <p>The endpoints behind the panel. Everything here is an ordinary HTTP call &mdash;
+            nothing on this page is pre-rendered or faked, and you can reproduce any of it with
+            <code>curl</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>What you are actually talking to</h2>
+      <p class="sub">one container, no attached services</p>
+      <p>
+        A single FastAPI process on a free Hugging Face Space. It holds the YOLO weights, the API,
+        and these three static files &mdash; no build step, no database, no external service that
+        can quietly expire. The one cost is that the Space sleeps when nobody visits, so the first
+        request after a quiet spell waits for the container to wake and the weights to load.
+      </p>
+      <div class="readout" id="infoRead">
+        <div><span>serving</span><b id="iVersion">&mdash;</b></div>
+        <div><span>inference size</span><b id="iImgsz">&mdash;</b></div>
+        <div><span>defect classes</span><b id="iClasses">&mdash;</b></div>
+        <div><span>sample boards</span><b id="iSamples">&mdash;</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= INSPECT ================= -->
+  <section class="view" id="v-inspect" hidden>
+    <div class="card">
+      <h2>Score a board</h2>
+      <p class="sub">six labelled boards &middot; or bring your own</p>
+      <p>
+        Each button is a real board from the HRIPCB validation set, chosen so that between them
+        all six defect classes are covered. They were never used for training.
+      </p>
+      <div class="samples" id="samples"></div>
+      <div class="controls">
+        <!-- the ? sits outside the label: a click on a control inside a label is
+             forwarded to that label's input, which would drag the slider -->
+        <label for="conf">
+          Confidence
+          <input type="range" id="conf" min="0.05" max="0.9" step="0.05" value="0.25">
+          <output id="confOut">0.25</output>
+        </label>
+        <button class="q" type="button" data-tip="The minimum score a detection needs before it is drawn. Lower it and the model reports more boxes, including weaker guesses; raise it and only the confident ones survive. 0.25 is the default it was evaluated at.">?</button>
+        <label class="upload">
+          Upload a board&hellip;
+          <input type="file" id="file" accept="image/*">
+        </label>
+        <span class="note" id="uploadNote"></span>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="empty">Pick a board above to run the detector</div>
+      </div>
+
+      <div class="legend">
+        <span class="l-hit"><i></i>found by the model</span>
+        <span class="l-miss"><i></i>labelled defect it missed</span>
+      </div>
+
+      <div class="readout">
+        <div><span>found</span><b id="rFound">&mdash;</b></div>
+        <div><span>missed</span><b id="rMissed">&mdash;</b></div>
+        <div><span>false alarms</span><b id="rFalse">&mdash;</b></div>
+        <div><span>top confidence</span><b id="rConf">&mdash;</b></div>
+        <div><span>scored by</span><b id="rVersion">&mdash;</b></div>
+      </div>
+      <p class="note" id="matchNote" style="margin-top:14px"></p>
+    </div>
+
+    <div class="card">
+      <h2>What it reported</h2>
+      <p class="sub">raw detections, highest confidence first</p>
+      <div class="scroller">
+        <table id="detTable">
+          <thead><tr><th>defect</th><th>confidence</th><th>box (x1, y1, x2, y2)</th><th>matched a label</th></tr></thead>
+          <tbody><tr><td colspan="4">Nothing scored yet.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= REGISTRY ================= -->
+  <section class="view" id="v-registry" hidden>
+    <div class="card">
+      <h2>The promotion gate</h2>
+      <p class="sub" id="gateSub">promote on mAP50-95</p>
+      <p>
+        A trained model does not become the served model by existing. It has to beat the version
+        currently holding the <code>production</code> alias on the gate metric, and the margin is
+        <code>0.0</code> &mdash; so a tie does not promote either.
+        <button class="q" type="button" data-tip="mAP50-95 averages detection quality across ten IoU thresholds from 0.50 to 0.95. It is far stricter than mAP50, which only asks that a box overlaps the truth by half. Gating on the strict one means a version cannot win by drawing sloppy boxes in roughly the right place.">?</button>
+      </p>
+      <p>
+        This is the part that people skip. Without it, "we retrained the model" and "the model got
+        better" are the same sentence &mdash; and as v4 below shows, they are not.
+      </p>
+      <div class="scroller">
+        <table id="regTable">
+          <thead><tr><th>ver</th><th>base</th><th>imgsz</th><th>epochs</th><th>mAP50</th><th>mAP50-95</th><th>precision</th><th>recall</th><th>train</th><th>outcome</th></tr></thead>
+          <tbody><tr><td colspan="10">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+      <div id="regNotes"></div>
+    </div>
+  </section>
+
+  <!-- ================= DRIFT ================= -->
+  <section class="view" id="v-drift" hidden>
+    <div class="card">
+      <h2>What the served traffic looks like</h2>
+      <p class="sub">
+        prediction log &middot; live
+        <button class="q" type="button" data-tip="Refreshes from /monitor/summary, which reads the SQLite prediction log inside this container.">?</button>
+      </p>
+      <p>
+        Every prediction writes one row: brightness, contrast, sharpness and size of the image,
+        how many defects came back, and the mean confidence.
+        <strong>The image itself is never stored.</strong> Those numbers are what drift monitoring
+        actually needs, and keeping only them means a stranger's uploaded board does not live on
+        this server.
+      </p>
+      <div class="readout">
+        <div><span>predictions</span><b id="mCount">&mdash;</b></div>
+        <div><span>avg defects/board</span><b id="mDet">&mdash;</b></div>
+        <div><span>avg confidence</span><b id="mConf">&mdash;</b></div>
+        <div><span>avg brightness</span><b id="mBright">&mdash;</b></div>
+      </div>
+      <div class="controls">
+        <button class="samples-btn" id="refreshMonitor" style="appearance:none;font-family:var(--mono);font-size:11.5px;background:var(--mask-hi);border:1px solid var(--edge);color:var(--silk-dim);padding:8px 13px;border-radius:7px;cursor:pointer">Refresh</button>
+        <span class="note">The count resets whenever the Space restarts &mdash; see the note below.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>How the retrain loop closes</h2>
+      <p class="sub">evidently &middot; scheduled action</p>
+      <p>
+        A scheduled GitHub Action pulls the recent prediction window and compares it against a
+        reference sample drawn from the training set. Evidently reports which feature columns have
+        drifted; if the drifted share crosses <code>0.5</code>, the workflow retrains, the new run
+        is registered, and the gate above decides whether it is allowed to serve.
+      </p>
+      <p>
+        That is the whole loop: <strong>serve &rarr; log &rarr; detect drift &rarr; retrain &rarr;
+        gate &rarr; serve</strong>, with a human required at exactly zero of those steps and a
+        model blocked at the one step that matters.
+      </p>
+      <div class="banner">
+        <b>Being straight about this one.</b> The prediction log lives in the container's own
+        filesystem, so when this free Space sleeps, the log goes with it. The loop is wired
+        end to end and the drift check runs, but on a demo like this it is running against a
+        window that starts fresh each time the container wakes. Persisting it needs a volume,
+        which is a paid Space feature.
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LIMITS ================= -->
+  <section class="view" id="v-limits" hidden>
+    <div class="card">
+      <h2>Why it finds a third of the defects</h2>
+      <p class="sub">mAP@50 0.336 &middot; recall 0.355</p>
+      <p>
+        A defect on these boards is about <strong>70 pixels across on a 3000-pixel photograph</strong>
+        &mdash; roughly 2.4% of the width. The detector runs at 1280, so by the time the board
+        reaches the network that defect is around 30 pixels. There is very little left to look at.
+      </p>
+      <p>
+        The evidence that this is a resolution ceiling and not a training problem is in the
+        registry: v2 and v3 use the identical model and image size, and v3 had
+        <strong>three times the epochs</strong>. It bought 0.311 &rarr; 0.336 on mAP50. Three and a
+        half hours of GPU time for two and a half points, with early stopping kicking in around
+        epoch 174. The curve is flat. More of the same would not help.
+      </p>
+
+      <h3>The experiment that failed</h3>
+      <p>
+        The standard answer to tiny objects is tiling &mdash; slice the board into 640px tiles so
+        each defect fills more of the frame, detect on tiles, stitch the results back. It was built
+        and it did not work. Sliced inference over a full board found
+        <strong>1 defect out of 18</strong>.
+      </p>
+      <p>
+        The cause was in the tile set, not the idea: <strong>32% of generated tiles contained no
+        defect at all</strong>. Trained on that, the model learned the cheapest correct answer
+        available &mdash; predict nothing. It was refused by the gate and never served. The code is
+        still in the repo behind <code>tiling.enabled: false</code>, with the fix noted:
+        drop background tiles from 15% to about 3% and rebuild.
+      </p>
+
+      <h3>What I would do next</h3>
+      <p>
+        Retry tiling with the background ratio corrected, which is the change most likely to move
+        the number. Failing that, <code>imgsz: 1536</code> on full boards is the low-risk option and
+        would give a modest gain. Either way the gate decides, not me.
+      </p>
+
+      <h3>Honest scope</h3>
+      <p>
+        This is one public dataset, 693 boards, six classes, trained on a single 8&nbsp;GB consumer
+        GPU. It is a working demonstration of the engineering around a model, not a production
+        inspection system, and a real line would want far more data, a much higher-resolution
+        camera rig, and a recall target set by what a missed defect costs.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= API ================= -->
+  <section class="view" id="v-api" hidden>
+    <div class="card">
+      <h2>Endpoints</h2>
+      <p class="sub">everything this panel calls</p>
+      <p>The panel is only a client. Full generated documentation is at <a href="/docs">/docs</a>.</p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>method</th><th>path</th><th>what it does</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td>/health</td><td>Liveness, and which model version is loaded.</td></tr>
+            <tr><td>GET</td><td>/model/info</td><td>Serving version, defect classes, inference resolution, gate metric.</td></tr>
+            <tr><td>POST</td><td>/predict</td><td>Upload an image, get detections back. Rejects anything over 10&nbsp;MB or unreadable.</td></tr>
+            <tr><td>POST</td><td>/predict/sample</td><td>Score one of the shipped boards at full resolution, without a round trip.</td></tr>
+            <tr><td>GET</td><td>/monitor/summary</td><td>Aggregates over the prediction log.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Try it</h3>
+      <p><code>curl -F "file=@board.jpg" $BASE/predict</code></p>
+    </div>
+  </section>
+
+  <p class="credit">Built by Shivani Bokka</p>
+</div>
+
+<div id="tip" hidden></div>
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

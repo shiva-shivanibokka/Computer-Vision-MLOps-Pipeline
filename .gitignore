@@ -19,8 +19,11 @@ mlartifacts/
 # DVC-tracked data & model outputs (pointers are committed, contents are not)
 /data/pcb/
 /data/pcb_raw/
-/artifacts/best.pt
 /artifacts/runs/
+# NOTE: artifacts/best.pt is deliberately NOT ignored. It is 22MB and it is what
+# makes a built image a PCB detector instead of an untrained yolov8n. There is no
+# DVC remote configured, so any CI build that relied on `dvc pull` would silently
+# ship a model that knows nothing about circuit boards.
 /artifacts/*.html
 /artifacts/predictions.db
 
@@ -34,3 +37,7 @@ mlartifacts/
 .DS_Store
 /artifacts/*.log
 /data/pcb_tiled/
+
+# Working notes, deliberately local-only
+/PLAN.md
+/TODO.md

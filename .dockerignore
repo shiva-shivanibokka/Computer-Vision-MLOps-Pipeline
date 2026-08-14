@@ -15,5 +15,6 @@ artifacts/runs
 artifacts/*.html
 artifacts/predictions.db
 *.md
+!README.md
 .env
 .dvc/cache

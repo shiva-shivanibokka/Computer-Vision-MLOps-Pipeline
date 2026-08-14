@@ -38,9 +38,21 @@ class ModelService:
     def instance(cls) -> ModelService:
         with cls._lock:
             if cls._instance is None:
-                cls._instance = cls()
-                cls._instance._load()
+                inst = cls()
+                inst._load()
+                cls._instance = inst  # published only once it can actually serve
             return cls._instance
+
+    @classmethod
+    def ready(cls) -> bool:
+        """Cheap, lock-free readiness check.
+
+        Callers that only want to know *whether* the model is up must not go
+        through instance() — that blocks on the load lock, which would make a
+        health probe hang for the whole warm-up instead of reporting it.
+        Safe because instance() publishes _instance only after _load() returns.
+        """
+        return cls._instance is not None
 
     def _load(self) -> None:
         from ultralytics import YOLO
@@ -94,7 +106,12 @@ class ModelService:
                                   conf=conf)
             return [Detection(label=r.label, confidence=r.confidence, box=r.box) for r in raws]
 
-        results = self._model.predict(img, conf=conf, verbose=False)
+        # Serve at the resolution the model was trained at. Defects are ~70px on
+        # ~3000px boards; at ultralytics' 640 default they shrink below what the
+        # detector ever saw, and recall collapses (34 detections -> 9 over 25
+        # val boards). Costs ~0.26s/image on CPU.
+        results = self._model.predict(
+            img, conf=conf, imgsz=load_params()["train"]["imgsz"], verbose=False)
         names = self._model.names
         out: list[Detection] = []
         for r in results:
