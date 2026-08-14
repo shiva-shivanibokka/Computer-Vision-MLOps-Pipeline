@@ -1,0 +1,40 @@
+# Build context for `gcloud run deploy --source`.
+# Explicit, because gcloud otherwise derives this from .gitignore, and the two
+# files want different things: artifacts/best.pt MUST be uploaded (it is the
+# model), while the local MLflow store and the dataset must not be.
+#
+# Not listing !artifacts/best.pt anywhere is deliberate — it is simply not
+# excluded, so it ships.
+
+.git
+.github
+.dvc/cache
+.venv
+venv
+__pycache__/
+*.pyc
+.pytest_cache
+.ruff_cache
+
+# Local experiment tracking — 2MB of SQLite and every run's weights.
+mlruns/
+mlartifacts/
+mlflow.db
+
+# The dataset itself: DVC's job, not the serving image's.
+data/
+artifacts/runs/
+artifacts/*.log
+artifacts/*.html
+artifacts/predictions.db
+
+# Base YOLO checkpoints downloaded at the repo root (~35MB, never served).
+/yolov8n.pt
+/yolov8s.pt
+/yolo26n.pt
+
+# Local working notes.
+PLAN.md
+TODO.md
+AUDIT.md
+FIX_PLAN.md

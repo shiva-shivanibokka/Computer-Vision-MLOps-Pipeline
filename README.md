@@ -2,10 +2,11 @@
 title: PCB Defect Detector
 emoji: 🔍
 colorFrom: green
-colorTo: blue
+colorTo: yellow
 sdk: docker
 app_port: 7860
 pinned: false
+short_description: YOLO defect detection on circuit boards, inside a closed MLOps loop
 ---
 
 # Computer Vision MLOps Pipeline — PCB Defect Detection
@@ -16,6 +17,42 @@ is not the model — it's the **closed MLOps loop** around it: versioned data,
 tracked experiments, a gated model registry, containerized serving, drift
 monitoring, and drift-triggered automated retraining. Everything runs on **free
 tiers, no credit card**.
+
+### ▶ [Open the live demo](https://shiva-1993-pcb-defect-detector.hf.space)
+
+Running on a free Hugging Face Space — **control panel** at
+[`/ui`](https://shiva-1993-pcb-defect-detector.hf.space/ui/), **API docs** at
+[`/docs`](https://shiva-1993-pcb-defect-detector.hf.space/docs). Real weights,
+real inference, nothing pre-recorded. Start on the **Manual** tab. The Space
+sleeps when idle, so the first request wakes the container.
+
+## What the demo is honest about
+
+Three things the panel deliberately shows rather than hides, because each one is
+a question an interviewer will ask:
+
+- **It finds about a third of the defects.** mAP@50 is 0.336 and recall is 0.355.
+  The six sample boards come from the labelled validation set, so the panel draws
+  a dashed box around **every defect the model missed** and the counter reads
+  `found 3 of 6`, not `3 detections`.
+- **A model version has to earn its way into production.** The gate compares
+  `mAP50-95` against the incumbent. v1, v2 and v3 cleared it. **v4 did not** — the
+  tiling experiment — and was never served.
+- **The ceiling is resolution, not effort.** v2 and v3 are the same model at the
+  same image size; v3 had 3× the epochs and bought 0.311 → 0.336. The Limits tab
+  shows that evidence and explains the tiling failure that came from 32% empty
+  tiles teaching the model to predict nothing.
+
+## The control panel
+
+Three static files (`web/`) served by the same FastAPI process that runs the
+model — no build step, no second origin, no CORS. Six tabs: **Manual · Inspect ·
+Registry · Drift · Limits · API**, themed off the artefact itself (FR4 board
+green, copper trace, gold pad, silkscreen white).
+
+Uploaded images are scored and discarded. Only derived statistics — brightness,
+contrast, sharpness, detection count, mean confidence — reach the prediction log,
+which is what drift monitoring actually needs.
 
 ## The closed MLOps loop
 
@@ -29,7 +66,7 @@ tiers, no credit card**.
      ▲                  │                        │
      │             Evidently                     ▼
      │            drift report          FastAPI loads production model
-     └────────────  SQLite  ◀── log every prediction ◀── /predict, Gradio UI
+     └────────────  SQLite  ◀── log every prediction ◀── /predict, control panel
 ```
 
 1. **Version** — `dvc repro` regenerates the dataset and trains; data + weights tracked by DVC.
@@ -47,7 +84,7 @@ tiers, no credit card**.
 | Data + model versioning | DVC → **DagsHub** remote | free storage |
 | Experiment tracking + registry | **MLflow** on **DagsHub** | free managed server |
 | Serving API | FastAPI + Uvicorn | open source |
-| Demo UI | Gradio | open source |
+| Control panel | Hand-built static HTML/CSS/JS | open source |
 | Containers | Docker + docker-compose | open source |
 | CI/CD | GitHub Actions | free (public repo) |
 | Deploy | **Hugging Face Spaces** (Docker SDK) | free |
@@ -57,15 +94,15 @@ tiers, no credit card**.
 ## Quickstart (fully local, no accounts)
 
 ```bash
-pip install -e .[dev]
+pip install -e ".[dev,mlops]"   # mlops extra = mlflow + dvc + evidently
 
 python -m cvmlops.data.prepare        # build dataset (synthetic fallback if no raw data)
 python -m cvmlops.train.train         # train, log to local MLflow, register v1
 python -m cvmlops.registry.promote    # promote v1 to `production`
 
 uvicorn cvmlops.serve.asgi:app --port 7860
-#   API docs: http://localhost:7860/docs
-#   Gradio UI: http://localhost:7860/ui
+#   Control panel: http://localhost:7860/ui
+#   API docs:      http://localhost:7860/docs
 ```
 
 Or the whole stack in Docker:
@@ -120,9 +157,9 @@ src/cvmlops/
   data/       prepare + synthetic dataset (YOLO format)
   train/      YOLO training + MLflow logging + registration
   registry/   promotion gate (alias `production`)
-  serve/      FastAPI app, model loader, combined ASGI (API + UI)
+  serve/      FastAPI app, model loader, combined ASGI (API + panel)
   monitor/    prediction log (SQLite), Evidently drift, drift-check entrypoint
-  ui/         Gradio app
+web/          the control panel: index.html, styles.css, app.js, sample boards
 tests/        data, monitor, api, registry, end-to-end smoke train
 .github/workflows/   ci.yml (lint/test/build/deploy), retrain.yml (drift loop)
 dvc.yaml · params.yaml · Dockerfile · docker-compose.yml

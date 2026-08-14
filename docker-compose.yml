@@ -1,5 +1,4 @@
 # Local production-like stack: a real MLflow tracking server + the detector app.
-# Reuses the same image for both services (mlflow is already a dependency).
 #
 #   docker compose up --build
 #   docker compose run --rm app python -m cvmlops.train.train      # populate a model
@@ -10,7 +9,10 @@
 
 services:
   mlflow:
-    build: .
+    # Upstream image, not a build of this repo. The serving image deliberately
+    # does not contain mlflow — it moved to the [mlops] extra so the deployed
+    # container stays small — so it cannot host a tracking server any more.
+    image: ghcr.io/mlflow/mlflow:v2.16.2
     command: >
       mlflow server --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:////mlflow/mlflow.db

@@ -27,7 +27,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install
-        run: pip install .
+        run: pip install ".[mlops]"   # needs mlflow + evidently
 
       # Prediction log persistence is the integration point: pull it from your
       # deployment's persistent storage (HF Space volume / DVC) before this step.
