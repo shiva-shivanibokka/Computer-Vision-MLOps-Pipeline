@@ -71,7 +71,11 @@ $("tabs").addEventListener("keydown", (e) => {
   const keys = { ArrowRight: 1, ArrowLeft: -1, Home: 0, End: 0 };
   if (!(e.key in keys)) return;
   e.preventDefault();
-  const i = VIEWS.indexOf(current);
+  // Step from whichever tab actually holds focus, not from the selected view.
+  // They usually coincide, but if focus lands on an unselected tab the two
+  // diverge and stepping from `current` silently skips one.
+  const focused = e.target.closest("button[data-view]");
+  const i = VIEWS.indexOf(focused ? focused.dataset.view : current);
   const next =
     e.key === "Home" ? 0 :
     e.key === "End" ? VIEWS.length - 1 :
