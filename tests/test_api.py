@@ -96,3 +96,25 @@ def test_every_sample_has_ground_truth_labels(client):
         for t in s["truth"]:
             assert len(t["box"]) == 4
             assert t["box"][0] < t["box"][2] and t["box"][1] < t["box"][3]
+
+
+@pytest.mark.parametrize("bad", [1.5, -0.2, 2, 100])
+def test_out_of_range_confidence_is_a_422_not_a_500(client, bad):
+    """Ultralytics asserts on conf outside [0, 1] deep inside predict().
+
+    Unbounded, that assertion reaches the caller as a 500 — a bad request
+    reported as a server fault. Both entry points must reject it at the edge.
+    """
+    r = client.post("/predict/sample", params={"sample_id": "x", "conf": bad})
+    assert r.status_code == 422, f"conf={bad} gave {r.status_code}"
+
+    r = client.post("/predict", params={"conf": bad},
+                    files={"file": ("pcb.png", _png_bytes(), "image/png")})
+    assert r.status_code == 422, f"conf={bad} on upload gave {r.status_code}"
+
+
+@pytest.mark.parametrize("good", [0.0, 0.25, 1.0])
+def test_valid_confidence_is_accepted(client, good):
+    r = client.post("/predict", params={"conf": good},
+                    files={"file": ("pcb.png", _png_bytes(), "image/png")})
+    assert r.status_code == 200

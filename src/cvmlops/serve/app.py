@@ -11,8 +11,9 @@ import json
 import uuid
 from contextlib import asynccontextmanager
 from threading import Thread
+from typing import Annotated
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict
 from starlette.concurrency import run_in_threadpool
@@ -23,6 +24,12 @@ from cvmlops.monitor.features import features_from
 from cvmlops.serve.model import Detection, ModelService
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+# Bound the threshold at the edge. Ultralytics asserts on conf outside [0, 1]
+# deep inside predict(), which surfaces to the caller as a 500 — a validation
+# error reported as a server fault. Constraining it here turns that into a 422
+# naming the offending value, and keeps the two entry points consistent.
+ConfThreshold = Annotated[float, Query(ge=0.0, le=1.0)]
 WEB_DIR = REPO_ROOT / "web"
 SAMPLES_DIR = WEB_DIR / "samples"
 
@@ -112,7 +119,7 @@ async def _detect(img: Image.Image, conf: float) -> PredictResponse:
 
 
 @app.post("/predict", response_model=PredictResponse)
-async def predict(file: UploadFile = File(...), conf: float = 0.25) -> PredictResponse:
+async def predict(file: UploadFile = File(...), conf: ConfThreshold = 0.25) -> PredictResponse:
     raw = await file.read()
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, f"image too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)}MB)")
@@ -124,7 +131,7 @@ async def predict(file: UploadFile = File(...), conf: float = 0.25) -> PredictRe
 
 
 @app.post("/predict/sample", response_model=PredictResponse)
-async def predict_sample(sample_id: str, conf: float = 0.25) -> PredictResponse:
+async def predict_sample(sample_id: str, conf: ConfThreshold = 0.25) -> PredictResponse:
     """Score one of the shipped boards, read from disk at full resolution.
 
     The browser only ever displays these images; sending them back up as an
