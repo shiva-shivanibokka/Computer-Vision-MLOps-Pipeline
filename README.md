@@ -1,5 +1,15 @@
 # Computer Vision MLOps Pipeline — PCB Defect Detection
 
+> [!IMPORTANT]
+> **The hosted demo is temporary.** This project's backend runs on Google Cloud
+> Run under a Google Cloud free trial that ends **around 19 September 2026**.
+> When the trial closes the service is stopped, and every `run.app` link below
+> stops responding.
+>
+> Nothing in this repository depends on that. The code, tests and results are
+> complete, and the instructions below run the whole thing locally.
+
+
 An end-to-end, production-style MLOps system for detecting manufacturing defects
 on printed circuit boards with a YOLO object detector. The point of this project
 is not the model — it's the **closed MLOps loop** around it: versioned data,
