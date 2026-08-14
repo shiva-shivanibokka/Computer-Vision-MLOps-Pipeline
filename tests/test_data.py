@@ -24,3 +24,38 @@ def test_generate_is_deterministic(tmp_path):
     ia = (a.parent / "images" / "train" / "train_0000.jpg").read_bytes()
     ib = (b.parent / "images" / "train" / "train_0000.jpg").read_bytes()
     assert ia == ib
+
+
+def test_root_resolves_when_the_package_is_installed_not_checked_out(tmp_path, monkeypatch):
+    """Regression: the deployed container found no params.yaml at all.
+
+    `pip install .` puts cvmlops in site-packages, so walking up from __file__
+    reaches /usr/local/lib/python3.11 instead of the app directory. The model
+    loader and the /ui mount both silently resolved against that. Reproduced by
+    pointing the __file__-derived candidate at a directory with no params.yaml.
+    """
+    import cvmlops.config as cfg
+
+    fake_site_packages = tmp_path / "site-packages" / "cvmlops"
+    fake_site_packages.mkdir(parents=True)
+    monkeypatch.setattr(cfg, "__file__", str(fake_site_packages / "config.py"))
+
+    app_dir = tmp_path / "app"
+    (app_dir).mkdir()
+    (app_dir / "params.yaml").write_text("dataset: {}\n", encoding="utf8")
+
+    # explicit override wins
+    monkeypatch.setenv("CVMLOPS_ROOT", str(app_dir))
+    assert cfg._find_root() == app_dir
+
+    # and without it, the working directory is the fallback
+    monkeypatch.delenv("CVMLOPS_ROOT")
+    monkeypatch.chdir(app_dir)
+    assert cfg._find_root() == app_dir
+
+
+def test_the_real_root_actually_holds_params():
+    """Whatever _find_root picked, params.yaml must be under it."""
+    from cvmlops.config import PARAMS_PATH, REPO_ROOT
+
+    assert PARAMS_PATH.is_file(), f"params.yaml not under resolved root {REPO_ROOT}"

@@ -8,8 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # HF Spaces runs the container as a non-root user with only /tmp writable, so
 # every library that wants a cache dir gets pointed there.
+# CVMLOPS_ROOT is not optional here. `pip install .` puts the package in
+# site-packages, so walking up from __file__ lands in /usr/local/lib/python3.11
+# rather than /app — the model would find no params.yaml and no weights.
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    CVMLOPS_ROOT=/app \
     HF_HOME=/tmp/hf \
     YOLO_CONFIG_DIR=/tmp/ultralytics \
     MPLCONFIGDIR=/tmp/mpl \

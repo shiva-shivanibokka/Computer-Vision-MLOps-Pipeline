@@ -6,6 +6,7 @@ zero accounts, and "connecting the accounts later" is just setting variables.
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,30 @@ from typing import Any
 import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+
+def _find_root() -> Path:
+    """Locate the directory holding params.yaml, web/ and artifacts/.
+
+    Walking up from __file__ only works in a source checkout. In the container
+    the package is pip-installed, so __file__ lives in site-packages and
+    parents[2] is /usr/local/lib/python3.11 — where params.yaml has never
+    existed. That failure is invisible locally and total in the image: the model
+    cannot resolve its weights and /ui is never mounted.
+
+    Candidates in order of authority: an explicit override, the source-checkout
+    layout, then the working directory (WORKDIR /app in the container).
+    """
+    candidates = []
+    if env := os.environ.get("CVMLOPS_ROOT"):
+        candidates.append(Path(env))
+    candidates += [Path(__file__).resolve().parents[2], Path.cwd()]
+    for c in candidates:
+        if (c / "params.yaml").is_file():
+            return c
+    return candidates[-1]
+
+
+REPO_ROOT = _find_root()
 PARAMS_PATH = REPO_ROOT / "params.yaml"
 
 
