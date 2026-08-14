@@ -285,7 +285,8 @@ h1 em {
   border-radius: 7px;
   cursor: pointer;
 }
-.refresh:hover { border-color: var(--copper); color: var(--gold); }
+.refresh:hover:not(:disabled) { border-color: var(--copper); color: var(--gold); }
+.refresh:disabled { opacity: 0.55; cursor: wait; }
 .refresh:focus-visible { outline: 2px solid var(--edge-hi); outline-offset: 2px; }
 
 .upload {

@@ -263,8 +263,8 @@
       </div>
       <div class="controls">
         <button class="refresh" id="refreshMonitor">Refresh</button>
-        <button class="q" type="button" data-tip="Re-reads the log. Nothing on this tab polls on its own — a demo that fires background requests forever would keep the container awake and burn resources for no reason.">?</button>
-        <span class="note">The count resets whenever the container restarts &mdash; see the note below.</span>
+        <button class="q" type="button" data-tip="Re-reads the log. The tab already refreshes when you open it, so the numbers often will not change — the timestamp beside the button is how you can tell the read actually happened. Nothing here polls on its own: a demo firing background requests forever would hold the container awake for no reason.">?</button>
+        <span class="note" id="mStamp">Not read yet.</span>
       </div>
     </div>
 

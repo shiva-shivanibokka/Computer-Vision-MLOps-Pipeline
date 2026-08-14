@@ -385,24 +385,36 @@ async function loadRegistry() {
 
 /* -------------------------------------------------------------- monitor --- */
 
-async function loadMonitor() {
+/* Opening the tab already refreshes, so pressing Refresh usually returns the
+   same numbers — leaving the button looking broken when it worked perfectly.
+   It has to report that it ran: a busy state while in flight, and a timestamp
+   that moves on every successful read even when nothing else does. */
+async function loadMonitor({ fromButton = false } = {}) {
+  const btn = $("refreshMonitor");
+  if (fromButton) { btn.disabled = true; btn.textContent = "Reading…"; }
   try {
     const m = await api("/monitor/summary");
     const set = (id, v) => { $(id).textContent = v; };
     if (!m.n) {
       set("mCount", "0"); set("mDet", "—"); set("mConf", "—"); set("mBright", "—");
-      return;
+    } else {
+      set("mCount", m.n);
+      set("mDet", m.avg_detections.toFixed(2));
+      set("mConf", m.avg_confidence.toFixed(3));
+      set("mBright", m.avg_brightness.toFixed(1));
     }
-    set("mCount", m.n);
-    set("mDet", m.avg_detections.toFixed(2));
-    set("mConf", m.avg_confidence.toFixed(3));
-    set("mBright", m.avg_brightness.toFixed(1));
+    $("mStamp").textContent = `Read at ${new Date().toLocaleTimeString()} — ` +
+      (m.n ? `${m.n} prediction${m.n === 1 ? "" : "s"} in the log.`
+           : "the log is empty; score a board on the Inspect tab.");
   } catch (e) {
+    $("mStamp").textContent = "Could not read the log.";
     toast(e.notReady ? "The container is still waking up." : e.message);
+  } finally {
+    if (fromButton) { btn.disabled = false; btn.textContent = "Refresh"; }
   }
 }
 
-$("refreshMonitor").addEventListener("click", loadMonitor);
+$("refreshMonitor").addEventListener("click", () => loadMonitor({ fromButton: true }));
 
 /* ----------------------------------------------------------------- init --- */
 
