@@ -67,7 +67,9 @@ body::before {
 .page {
   position: relative;
   z-index: 1;
-  max-width: 1240px;
+  /* No inner max-width. The 2in gutter is what sets the measure — text should
+     run the full width the gutter leaves, not be boxed into a narrow column
+     inside it. */
   margin: 0 auto;
   padding: 54px var(--gutter) 90px;
 }
@@ -106,7 +108,7 @@ h1 {
   font-weight: 680;
   margin: 0 0 20px;
   text-wrap: balance;
-  max-width: 20ch;
+  max-width: 32ch;
 }
 h1 em {
   font-style: normal;
@@ -114,7 +116,6 @@ h1 em {
 }
 
 .lede {
-  max-width: 74ch;
   color: var(--silk-dim);
   font-size: 18px;
   margin: 0 0 14px;
@@ -195,7 +196,7 @@ h1 em {
   color: var(--gold);
   letter-spacing: -0.005em;
 }
-.card p { color: var(--silk-dim); margin: 0 0 12px; max-width: 78ch; }
+.card p { color: var(--silk-dim); margin: 0 0 12px; }
 .card p:last-child { margin-bottom: 0; }
 .card strong { color: var(--silk); font-weight: 600; }
 .card code {
@@ -271,6 +272,21 @@ h1 em {
 }
 .controls input[type="range"] { accent-color: var(--copper); width: 150px; }
 .controls output { color: var(--gold); font-size: 13px; min-width: 3.2em; }
+
+.refresh {
+  appearance: none;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  background: var(--mask-hi);
+  border: 1px solid var(--edge);
+  color: var(--silk-dim);
+  padding: 8px 13px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.refresh:hover { border-color: var(--copper); color: var(--gold); }
+.refresh:focus-visible { outline: 2px solid var(--edge-hi); outline-offset: 2px; }
 
 .upload {
   font-family: var(--mono);
@@ -365,6 +381,7 @@ h1 em {
 .legend {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px 20px;
   margin-top: 16px;
   font-family: var(--mono);
@@ -426,7 +443,6 @@ td .flag {
   font-size: 12.5px;
   line-height: 1.55;
   font-family: var(--sans);
-  max-width: 62ch;
 }
 
 /* ---------- manual ---------- */
@@ -452,6 +468,16 @@ td .flag {
 @media (max-width: 620px) { .entry { grid-template-columns: 1fr; gap: 4px; } }
 
 /* ---------- tooltips ---------- */
+
+.readout span .q,
+th .q {
+  vertical-align: 0;
+  margin-left: 5px;
+  width: 15px;
+  height: 15px;
+  font-size: 9.5px;
+  letter-spacing: 0;
+}
 
 .q {
   appearance: none;
