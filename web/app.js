@@ -64,16 +64,35 @@ $("tabs").addEventListener("click", (e) => {
   if (btn) show(btn.dataset.view);
 });
 
+/* A tablist is expected to move with the arrow keys, with Home/End jumping to
+   the ends. Tab itself should leave the strip rather than walk through six
+   buttons, which is what the roving tabindex in show() is for. */
+$("tabs").addEventListener("keydown", (e) => {
+  const keys = { ArrowRight: 1, ArrowLeft: -1, Home: 0, End: 0 };
+  if (!(e.key in keys)) return;
+  e.preventDefault();
+  const i = VIEWS.indexOf(current);
+  const next =
+    e.key === "Home" ? 0 :
+    e.key === "End" ? VIEWS.length - 1 :
+    (i + keys[e.key] + VIEWS.length) % VIEWS.length;
+  show(VIEWS[next]);
+  $(`tab-${VIEWS[next]}`).focus();
+});
+
 function show(name) {
   if (!VIEWS.includes(name)) return;
   current = name;
   for (const v of VIEWS) $(`v-${v}`).hidden = v !== name;
   for (const b of $("tabs").querySelectorAll("button")) {
-    b.setAttribute("aria-selected", String(b.dataset.view === name));
+    const on = b.dataset.view === name;
+    b.setAttribute("aria-selected", String(on));
+    b.tabIndex = on ? 0 : -1;   // roving tabindex: one stop for the whole strip
   }
   if (name === "registry") loadRegistry();
   if (name === "drift") loadMonitor();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: still ? "auto" : "smooth" });
 }
 
 /* ------------------------------------------------------------- tooltips --- */

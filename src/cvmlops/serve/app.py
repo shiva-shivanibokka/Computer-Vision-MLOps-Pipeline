@@ -14,7 +14,7 @@ from threading import Thread
 from typing import Annotated
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict
 from starlette.concurrency import run_in_threadpool
 
@@ -30,6 +30,18 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 # error reported as a server fault. Constraining it here turns that into a 422
 # naming the offending value, and keeps the two entry points consistent.
 ConfThreshold = Annotated[float, Query(ge=0.0, le=1.0)]
+
+
+def _open_image(src) -> Image.Image:
+    """Open an image the way a browser would display it.
+
+    exif_transpose matters for correctness, not tidiness: browsers honour the
+    EXIF orientation tag, PIL does not. A photo taken in portrait carries
+    landscape pixels plus "rotate me", so without this the model scores the
+    unrotated pixels while the panel draws boxes over the rotated render — every
+    box lands on the wrong axis. Phone cameras set this tag constantly.
+    """
+    return ImageOps.exif_transpose(Image.open(src)).convert("RGB")
 WEB_DIR = REPO_ROOT / "web"
 SAMPLES_DIR = WEB_DIR / "samples"
 
@@ -124,7 +136,7 @@ async def predict(file: UploadFile = File(...), conf: ConfThreshold = 0.25) -> P
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, f"image too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)}MB)")
     try:
-        img = Image.open(io.BytesIO(raw)).convert("RGB")
+        img = _open_image(io.BytesIO(raw))
     except (UnidentifiedImageError, OSError, ValueError) as e:
         raise HTTPException(400, "invalid or unreadable image file") from e
     return await _detect(img, conf)
@@ -146,7 +158,7 @@ async def predict_sample(sample_id: str, conf: ConfThreshold = 0.25) -> PredictR
     path = SAMPLES_DIR / f"{sample_id}.jpg"
     if not path.exists():
         raise HTTPException(404, f"sample {sample_id!r} is listed but its image is missing")
-    return await _detect(Image.open(path).convert("RGB"), conf)
+    return await _detect(_open_image(path), conf)
 
 
 def _sample_manifest() -> list[dict]:

@@ -118,3 +118,26 @@ def test_valid_confidence_is_accepted(client, good):
     r = client.post("/predict", params={"conf": good},
                     files={"file": ("pcb.png", _png_bytes(), "image/png")})
     assert r.status_code == 200
+
+
+def test_exif_rotated_upload_is_scored_as_the_browser_displays_it(client):
+    """Browsers honour the EXIF orientation tag; PIL does not by default.
+
+    A portrait phone photo stores landscape pixels plus "rotate me". Without
+    normalising, the model scores the unrotated pixels while the panel draws
+    boxes over the rotated render, so every box lands on the wrong axis.
+    """
+    buf = io.BytesIO()
+    exif = Image.Exif()
+    exif[274] = 6  # orientation: rotate 90° clockwise on display
+    Image.new("RGB", (400, 200), (20, 90, 60)).save(buf, format="JPEG", exif=exif)
+
+    r = client.post("/predict", files={"file": ("rot.jpg", buf.getvalue(), "image/jpeg")})
+    assert r.status_code == 200
+    # 400x200 stored, displayed as 200x400 — the API must report what is seen.
+    assert r.json()["image_size"] == [200, 400]
+
+
+def test_upload_without_exif_is_left_alone(client):
+    r = client.post("/predict", files={"file": ("plain.png", _png_bytes(), "image/png")})
+    assert r.json()["image_size"] == [32, 32]

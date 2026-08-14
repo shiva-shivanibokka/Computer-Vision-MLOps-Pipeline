@@ -35,16 +35,16 @@
   </header>
 
   <nav class="tabs" role="tablist" id="tabs">
-    <button role="tab" data-view="manual"   aria-selected="true">Manual</button>
-    <button role="tab" data-view="inspect"  aria-selected="false">Inspect</button>
-    <button role="tab" data-view="registry" aria-selected="false">Registry</button>
-    <button role="tab" data-view="drift"    aria-selected="false">Drift</button>
-    <button role="tab" data-view="limits"   aria-selected="false">Limits</button>
-    <button role="tab" data-view="api"      aria-selected="false">API</button>
+    <button role="tab" id="tab-manual" aria-controls="v-manual" data-view="manual"   aria-selected="true">Manual</button>
+    <button role="tab" id="tab-inspect" aria-controls="v-inspect" data-view="inspect"  aria-selected="false">Inspect</button>
+    <button role="tab" id="tab-registry" aria-controls="v-registry" data-view="registry" aria-selected="false">Registry</button>
+    <button role="tab" id="tab-drift" aria-controls="v-drift" data-view="drift"    aria-selected="false">Drift</button>
+    <button role="tab" id="tab-limits" aria-controls="v-limits" data-view="limits"   aria-selected="false">Limits</button>
+    <button role="tab" id="tab-api" aria-controls="v-api" data-view="api"      aria-selected="false">API</button>
   </nav>
 
   <!-- ================= MANUAL ================= -->
-  <section class="view" id="v-manual">
+  <section class="view" id="v-manual" role="tabpanel" aria-labelledby="tab-manual" tabindex="0">
     <div class="card">
       <h2>How to read this panel</h2>
       <p class="sub">start here &middot; every tab explained</p>
@@ -138,7 +138,7 @@
   </section>
 
   <!-- ================= INSPECT ================= -->
-  <section class="view" id="v-inspect" hidden>
+  <section class="view" id="v-inspect" role="tabpanel" aria-labelledby="tab-inspect" tabindex="0" hidden>
     <div class="card">
       <h2>Score a board</h2>
       <p class="sub">six labelled boards &middot; or bring your own</p>
@@ -203,7 +203,7 @@
   </section>
 
   <!-- ================= REGISTRY ================= -->
-  <section class="view" id="v-registry" hidden>
+  <section class="view" id="v-registry" role="tabpanel" aria-labelledby="tab-registry" tabindex="0" hidden>
     <div class="card">
       <h2>The promotion gate</h2>
       <p class="sub" id="gateSub">promote on mAP50-95</p>
@@ -240,7 +240,7 @@
   </section>
 
   <!-- ================= DRIFT ================= -->
-  <section class="view" id="v-drift" hidden>
+  <section class="view" id="v-drift" role="tabpanel" aria-labelledby="tab-drift" tabindex="0" hidden>
     <div class="card">
       <h2>What the served traffic looks like</h2>
       <p class="sub">
@@ -294,7 +294,7 @@
   </section>
 
   <!-- ================= LIMITS ================= -->
-  <section class="view" id="v-limits" hidden>
+  <section class="view" id="v-limits" role="tabpanel" aria-labelledby="tab-limits" tabindex="0" hidden>
     <div class="card">
       <h2>Why it finds a third of the defects</h2>
       <p class="sub">mAP@50 0.336 &middot; recall 0.355</p>
@@ -347,7 +347,7 @@
   </section>
 
   <!-- ================= API ================= -->
-  <section class="view" id="v-api" hidden>
+  <section class="view" id="v-api" role="tabpanel" aria-labelledby="tab-api" tabindex="0" hidden>
     <div class="card">
       <h2>Endpoints</h2>
       <p class="sub">everything this panel calls</p>
