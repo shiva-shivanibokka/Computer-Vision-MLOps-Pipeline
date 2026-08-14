@@ -63,8 +63,21 @@ app = FastAPI(title="PCB Defect Detector", version="0.1.0", lifespan=lifespan)
 
 
 def _require_model() -> ModelService:
-    if not ModelService.ready():
-        raise HTTPException(503, "The model is still loading. Try again in a few seconds.")
+    """Block until the model is loaded, rather than 503-ing while it warms.
+
+    Counter-intuitive on Cloud Run, but correct there: with default CPU
+    throttling the container is only given CPU *while a request is in flight*.
+    A warm-up thread therefore makes almost no progress between requests, and a
+    poll loop that returns 503 in 50ms buys the loader 50ms of CPU per poll —
+    warm-up effectively never finishes. Holding this request open instead gives
+    the loader a full core until it is done. The load is ~15s and the platform
+    request timeout is 300s.
+
+    The thread started in lifespan is still worth keeping: it uses the CPU of
+    whatever request happens to arrive first, and instance() is lock-guarded, so
+    a caller that arrives mid-load waits for that same load rather than starting
+    a second one.
+    """
     return ModelService.instance()
 
 
